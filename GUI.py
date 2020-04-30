@@ -1,0 +1,77 @@
+import tkinter
+from tkinter import ttk
+
+
+class Postman:
+    def __init__(self):
+        self.tk = tkinter.Tk()
+        # self.tk.overrideredirect(True)
+        self.tk.title("鲁班转发助手")
+        self.tk.geometry('600x400+200+200')
+        self.tk.resizable(0, 0)
+        self.label_nickname = tkinter.Label(self.tk, text="昵称:")
+        self.label_nickname.pack()
+        self.frame_group = tkinter.LabelFrame(self.tk, text="转发关系", padx=5, pady=5)
+        self.frame_group.place(x=10, y=20)
+        self.group_forward = ttk.Treeview(self.frame_group, show="headings", columns=('col1', 'col2', 'col3', 'col4'))
+        self.group_forward.heading('col1', text='监听群')
+        self.group_forward.heading('col2', text='监听详情')
+        self.group_forward.heading('col3', text='转发群')
+        self.group_forward.heading('col4', text='回复详情')
+        self.group_forward.column('col1', width=120, anchor='center')
+        self.group_forward.column('col2', width=120, anchor='center')
+        self.group_forward.column('col3', width=120, anchor='center')
+        self.group_forward.column('col4', width=120, anchor='center')
+        # self.group_forward.bind("<ButtonRelease-1>", self.treeviewClick)
+        self.group_forward.pack()
+        self.button_add_listen = tkinter.Button(self.tk, text="添加监听", command=self.select_group)
+        self.button_add_listen.place(x=520, y=30)
+        self.button_add_listen = tkinter.Button(self.tk, text="删除监听", command=self.select_group)
+        self.button_add_listen.place(x=520, y=70)
+
+    def select_group(self):
+        self.tl = tkinter.Toplevel(self.tk)
+        # self.tk.overrideredirect(True)
+        self.tl.title("选择监听群")
+        self.tl.geometry('250x80+300+300')
+        self.tl.resizable(0, 0)
+        self.combo_box_group = ttk.Combobox(self.tl)
+        self.combo_box_group['value'] = ('上海', '北京', '天津', '广州')
+        self.combo_box_group.pack(pady=10)
+        self.button_next=tkinter.Button(self.tl, text="下一步", command=self.select_group_member)
+        self.button_next.pack()
+
+    def select_group_member(self):
+        group_wxid = self.combo_box_group.get()
+        self.tl.destroy()
+        print(group_wxid)
+        self.tl = tkinter.Toplevel(self.tk)
+        self.tl.title("选择监听群成员")
+        self.tl.geometry('250x80+300+300')
+        self.tl.resizable(0, 0)
+        self.checkbutton_member = tkinter.Checkbutton(self.tl, text="")
+        self.checkbutton_member.pack()
+        self.checkbutton_member = tkinter.Checkbutton(self.tl, text="asdfsxcvxas")
+        self.checkbutton_member.pack()
+        self.checkbutton_member = tkinter.Checkbutton(self.tl, text="asdfaxcvsfs")
+        self.checkbutton_member.pack()
+        self.checkbutton_member = tkinter.Checkbutton(self.tl, text="asdfsdfsadas")
+        self.checkbutton_member.pack()
+        self.checkbutton_member = tkinter.Checkbutton(self.tl, text="asdsdfsfas")
+        self.checkbutton_member.pack()
+        self.checkbutton_member = tkinter.Checkbutton(self.tl, text="asdsdfsdfas")
+        self.checkbutton_member.pack()
+        self.checkbutton_member = tkinter.Checkbutton(self.tl, text="asddsfsdfas")
+        self.checkbutton_member.pack()
+        self.checkbutton_member = tkinter.Checkbutton(self.tl, text="asdfdsfsdfas")
+        self.checkbutton_member.pack()
+        self.checkbutton_member = tkinter.Checkbutton(self.tl, text="asdfsdfsdas")
+        self.checkbutton_member.pack()
+        self.checkbutton_member = tkinter.Checkbutton(self.tl, text="asdfsdfsdas")
+        self.checkbutton_member.pack()
+
+
+
+if __name__ == '__main__':
+    postman = Postman()
+    postman.tk.mainloop()
