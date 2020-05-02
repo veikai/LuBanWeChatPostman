@@ -181,106 +181,155 @@
 # abc.mainloop()
 
 #======================================================================================
-import tkinter as tk
-from tkinter import messagebox
-from tkinter import ttk
+# import tkinter as tk
+# from tkinter import messagebox
+# from tkinter import ttk
+# from tkinter import *
+# class productdata(object):
+#     def __init__(self):
+#         self.root = tk.Tk() #初始化
+#         self.root.title('数据方舟') #修改窗体名称
+#         self.root.resizable(width=False,height=False) #窗体界面宽高可调
+#         self.root.geometry('900x500') #窗体默认大小
+#         self.canvas = tk.Canvas(self.root,width='1200',height='1200')
+#         self.canvas.pack(side='top')
+#         #定义一个变量监控删除行数
+#         self.delhang=0
+#         #添加一个表格
+#         columns = ("字段类型", "字段长度", "小数位数", "是否唯一", "字段名称")
+#         self.treeview = ttk.Treeview(self.root, height=18, show="headings", columns=columns)
+#         # 表示列,不显示
+#         self.treeview.column("字段类型", width=100, anchor='center')
+#         self.treeview.column("字段长度", width=100, anchor='center')
+#         self.treeview.column("小数位数", width=100, anchor='center')
+#         self.treeview.column("是否唯一", width=100, anchor='center')
+#         self.treeview.column("字段名称", width=100, anchor='center')
+#         # 显示表头
+#         self.treeview.heading("字段类型", text="字段类型")
+#         self.treeview.heading("字段长度", text="字段长度")
+#         self.treeview.heading("小数位数", text="小数位数")
+#         self.treeview.heading("是否唯一", text="是否唯一")
+#         self.treeview.heading("字段名称", text="字段名称")
+#         # 写入数据
+#         self.type = ['letter']
+#         self.long = ['10']
+#         self.decimal = ['0']
+#         self.only = ['是']
+#         self.name = ['资源ID']
+#         for i in range(min(len(self.type), len(self.long), len(self.decimal), len(self.only), len(self.name))):
+#             self.treeview.insert('', i, values=(self.type[i], self.long[i], self.decimal[i], self.only[i], self.name[i]))
+#             # 双击左键进入编辑
+#             self.treeview.bind('<Double-1>', self.set_cell_value)
+#             #添加一个'添加字段'按钮
+#             self.add_field_button = ttk.Button(self.root,text='添加字段',width=10, command=self.newrow)
+#             # 添加一个'删除字段'按钮
+#             self.del_field_button = ttk.Button(self.root,text='删除字段',width=10, command=self.delrow)
+#             #添加一个'清空字段'按钮
+#             self.delall_field_button = ttk.Button(self.root,text='清空字段',width=10,command=self.delall)
+#     def buju(self):
+#         #添加按钮
+#         self.add_field_button.place(x=780,y=40)
+#         #删除按钮
+#         self.del_field_button.place(x=780,y=80)
+#         #清空按钮
+#         self.delall_field_button.place(x=780,y=120)
+#         #表格布局
+#         self.treeview.place(x=0, y=2, width=750, height=200)
+#     def set_cell_value(self,event):
+#         for item in self.treeview.selection():
+#         # item = I001
+#             item_text = self.treeview.item(item, "values")
+#         # print(item_text[0:2])  # 输出所选行的值
+#             column = self.treeview.identify_column(event.x)  # 列
+#             row = self.treeview.identify_row(event.y)  # 行
+#             cn = int(str(column).replace('#', ''))
+#             rn = int(str(row).replace('I', ''))-self.delhang
+#             entryedit = Text(self.root, width=10, height=1)
+#             entryedit.place(x=20 + (cn - 1) * 150, y=6 + rn * 20)
+#             def saveedit():
+#                 self.treeview.set(item, column=column, value=entryedit.get(0.0, "end"))
+#                 entryedit.destroy()
+#                 # okb.destroy()
+#                 # okb = ttk.Button(self.root, text='OK', width=4, command=saveedit)
+#                 # okb.place(x=90 + (cn - 1) * 150, y=2 + rn * 20)
+#     def newrow(self):
+#         self.type.append('输入e799bee5baa6e58685e5aeb931333431373834字段类型')
+#         self.long.append('输入字段长度')
+#         self.decimal.append('输入小数位数')
+#         self.only.append('是否唯一')
+#         self.name.append('请输入字段长度')
+#         self.treeview.insert('', len(self.type) - 1, values=(self.type[len(self.type)-1],
+#         self.long[len(self.type)-1],
+#         self.decimal[len(self.type)-1],
+#         self.only[len(self.type)-1],
+#         self.name[len(self.type)-1]))
+#         self.treeview.update()
+#     def delrow(self):
+#         selected_items = self.treeview.selection()
+#         for item in selected_items:
+#             self.treeview.delete(item)
+#             self.delhang +=1
+#     def delall(self):
+#         all_items = self.treeview.get_children()
+#         for item in all_items:
+#             self.treeview.delete(item)
+#         self.delhang =0
+#
+#
+# def main():
+#     #初始化对象
+#     p = productdata()
+#     #进行布局
+#     p.buju()
+#     tk.mainloop()
+# if __name__=="__main__":
+#     main()
+
+# from tkinter import *
+#
+#
+# def main():
+#     root = Tk()
+#     v = IntVar()  # 特殊的int
+#
+#     # 通过这个v可以反映出是否被选中
+#     c = Checkbutton(root, text="测试", variable=v)
+#     c.pack()
+#
+#     # 要想Label中的文字是可以变的，那么就得写textvariable
+#     l = Label(root, textvariable=v)
+#     l.pack()
+#     print(v)
+#
+#     mainloop()
+
+#
+# if __name__ == '__main__':
+#     main()
+
 from tkinter import *
-class productdata(object):
-    def __init__(self):
-        self.root = tk.Tk() #初始化
-        self.root.title('数据方舟') #修改窗体名称
-        self.root.resizable(width=False,height=False) #窗体界面宽高可调
-        self.root.geometry('900x500') #窗体默认大小
-        self.canvas = tk.Canvas(self.root,width='1200',height='1200')
-        self.canvas.pack(side='top')
-        #定义一个变量监控删除行数
-        self.delhang=0
-        #添加一个表格
-        columns = ("字段类型", "字段长度", "小数位数", "是否唯一", "字段名称")
-        self.treeview = ttk.Treeview(self.root, height=18, show="headings", columns=columns)
-        # 表示列,不显示
-        self.treeview.column("字段类型", width=100, anchor='center')
-        self.treeview.column("字段长度", width=100, anchor='center')
-        self.treeview.column("小数位数", width=100, anchor='center')
-        self.treeview.column("是否唯一", width=100, anchor='center')
-        self.treeview.column("字段名称", width=100, anchor='center')
-        # 显示表头
-        self.treeview.heading("字段类型", text="字段类型")
-        self.treeview.heading("字段长度", text="字段长度")
-        self.treeview.heading("小数位数", text="小数位数")
-        self.treeview.heading("是否唯一", text="是否唯一")
-        self.treeview.heading("字段名称", text="字段名称")
-        # 写入数据
-        self.type = ['letter']
-        self.long = ['10']
-        self.decimal = ['0']
-        self.only = ['是']
-        self.name = ['资源ID']
-        for i in range(min(len(self.type), len(self.long), len(self.decimal), len(self.only), len(self.name))):
-            self.treeview.insert('', i, values=(self.type[i], self.long[i], self.decimal[i], self.only[i], self.name[i]))
-            # 双击左键进入编辑
-            self.treeview.bind('<Double-1>', self.set_cell_value)
-            #添加一个'添加字段'按钮
-            self.add_field_button = ttk.Button(self.root,text='添加字段',width=10, command=self.newrow)
-            # 添加一个'删除字段'按钮
-            self.del_field_button = ttk.Button(self.root,text='删除字段',width=10, command=self.delrow)
-            #添加一个'清空字段'按钮
-            self.delall_field_button = ttk.Button(self.root,text='清空字段',width=10,command=self.delall)
-    def buju(self):
-        #添加按钮
-        self.add_field_button.place(x=780,y=40)
-        #删除按钮
-        self.del_field_button.place(x=780,y=80)
-        #清空按钮
-        self.delall_field_button.place(x=780,y=120)
-        #表格布局
-        self.treeview.place(x=0, y=2, width=750, height=200)
-    def set_cell_value(self,event):
-        for item in self.treeview.selection():
-        # item = I001
-            item_text = self.treeview.item(item, "values")
-        # print(item_text[0:2])  # 输出所选行的值
-            column = self.treeview.identify_column(event.x)  # 列
-            row = self.treeview.identify_row(event.y)  # 行
-            cn = int(str(column).replace('#', ''))
-            rn = int(str(row).replace('I', ''))-self.delhang
-            entryedit = Text(self.root, width=10, height=1)
-            entryedit.place(x=20 + (cn - 1) * 150, y=6 + rn * 20)
-            def saveedit():
-                self.treeview.set(item, column=column, value=entryedit.get(0.0, "end"))
-                entryedit.destroy()
-                # okb.destroy()
-                # okb = ttk.Button(self.root, text='OK', width=4, command=saveedit)
-                # okb.place(x=90 + (cn - 1) * 150, y=2 + rn * 20)
-    def newrow(self):
-        self.type.append('输入e799bee5baa6e58685e5aeb931333431373834字段类型')
-        self.long.append('输入字段长度')
-        self.decimal.append('输入小数位数')
-        self.only.append('是否唯一')
-        self.name.append('请输入字段长度')
-        self.treeview.insert('', len(self.type) - 1, values=(self.type[len(self.type)-1],
-        self.long[len(self.type)-1],
-        self.decimal[len(self.type)-1],
-        self.only[len(self.type)-1],
-        self.name[len(self.type)-1]))
-        self.treeview.update()
-    def delrow(self):
-        selected_items = self.treeview.selection()
-        for item in selected_items:
-            self.treeview.delete(item)
-            self.delhang +=1
-    def delall(self):
-        all_items = self.treeview.get_children()
-        for item in all_items:
-            self.treeview.delete(item)
-        self.delhang =0
 
+root = Tk()
+lb = Listbox(root)
+for i in range(10):
+    lb.insert(END, str(i))
+lb.selection_set(0, 10)
+#  程序运行结果，选中了所有的项。 此代码并未指定Listbox为MULTIPLE或EXTENDED，查通过selection_set仍旧可以对Listbox进行操作。
+# 与之相对的便是取消选中的函数了，参数与selection_set在参数相同，如下代码取消索引从0－3在状态
+lb.selection_clear(0, 3)
 
-def main():
-    #初始化对象
-    p = productdata()
-    #进行布局
-    p.buju()
-    tk.mainloop()
-if __name__=="__main__":
-    main()
+'''8.得到当前Listbox中的item个数'''
+print(lb.size())  # 输出10
+lb.pack()
+'''9.返回指定索引的项'''
+print(lb.get(3))  # 输出3
+# get也为两个参数的函数，可以返回多个项(item)，如下返回索引值3－7的值
+print(lb.get(3, 7))  # ('3', '4', '5', '6', '7')，是一个tuple类型
+
+'''10.返回当前返回的项的索引，不是item的值'''
+print(lb.curselection())  # (4, 5, 6, 7, 8, 9)
+
+'''11.判断 一个项是否被选中，使用索引。'''
+print(lb.selection_includes(8))  # True
+print(lb.selection_includes(0))  # False
+root.mainloop()
