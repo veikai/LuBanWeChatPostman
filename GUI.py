@@ -23,18 +23,17 @@ class Postman:
         self.label_nickname.pack()
         self.frame_group = tkinter.LabelFrame(self.tk, text="转发关系", padx=5, pady=5)
         self.frame_group.place(x=10, y=20)
-        self.group_forward = ttk.Treeview(self.frame_group, show="headings", columns=('col0', 'col1', 'col2', 'col3', 'col4'))
+        self.group_forward = ttk.Treeview(self.frame_group, show="headings", columns=('col0', 'col1', 'col2', 'col3'))
         self.group_forward.heading('col0', text='ID')
         self.group_forward.heading('col1', text='监听群')
-        self.group_forward.heading('col2', text='监听详情')
-        self.group_forward.heading('col3', text='转发群')
-        self.group_forward.heading('col4', text='回复详情')
+        self.group_forward.heading('col2', text='转发群')
+        self.group_forward.heading('col3', text='监听详情')
         self.group_forward.column('col0', width=20, anchor='center')
-        self.group_forward.column('col1', width=120, anchor='center')
-        self.group_forward.column('col2', width=120, anchor='center')
+        self.group_forward.column('col1', width=180, anchor='center')
+        self.group_forward.column('col2', width=180, anchor='center')
         self.group_forward.column('col3', width=120, anchor='center')
-        self.group_forward.column('col4', width=120, anchor='center')
         self.group_forward.pack()
+        self.group_forward.bind('<ButtonRelease-1>', self.show_listen_details)
         self.label_log = tkinter.Label(self.tk, text="日志通知")
         self.label_log.place(x=10, y=300)
         self.button_open_wechat = tkinter.Button(self.tk, text="打开微信", command=self.open_wechat)
@@ -77,8 +76,8 @@ class Postman:
                 }
             for k, v in data_global[self.wxid]["listen_relationship"].items():
                 self.group_forward.insert('', 'end', values=(
-                    k, data_global[self.wxid]["chatroom_nickname"][v["group_listen"]], '11',
-                    data_global[self.wxid]["chatroom_nickname"][v["group_reply"]], '22'))
+                    k, data_global[self.wxid]["chatroom_nickname"][v["group_listen"]],
+                    data_global[self.wxid]["chatroom_nickname"][v["group_reply"]], '点击查看'))
             id_list = list(data_global[self.wxid]["listen_relationship"].keys())
             if id_list:
                 listen_index += id_list[-1]
@@ -103,21 +102,26 @@ class Postman:
                     if message["msg_type"] == 1:
                         wxid1 = message["wxid1"]
                         wxid2 = message.get("wxid2")
-                        content = message["content"]
                         if wxid2:
                             for listen in data_global[self.wxid]["listen_relationship"].values():
                                 if wxid1 == listen["group_listen"] and wxid2 in listen["member_listen"]:
+                                    content = message["content"]
                                     wxid_forward = listen["group_reply"]
                                     group_nickname = data_global[self.wxid]["chatroom_nickname"][wxid1]
-                                    speaker_nickname = data_global[self.wxid]["member_nickname"][wxid2]
-                                    content = f"鲁班转发：[{group_nickname}]{speaker_nickname}：{content}"
-                                    self.spy.send_text(wxid_forward, content, pid=self.pid)
+                                    speaker = listen["member_listen"].index(wxid2) + 1
+                                    speaker_nickname = f"用户{speaker}"
+                                    _content = f"转发:[{group_nickname}]{speaker_nickname}----{content}"
+                                    # print(content)
+                                    self.spy.send_text(wxid_forward, _content, pid=self.pid)
                                 elif wxid1 == listen["group_reply"] and wxid2 in listen["member_reply"]:
+                                    content = message["content"]
                                     wxid_forward = listen["group_listen"]
                                     group_nickname = data_global[self.wxid]["chatroom_nickname"][wxid1]
-                                    speaker_nickname = data_global[self.wxid]["member_nickname"][wxid2]
-                                    content = f"鲁班转发：[{group_nickname}]{speaker_nickname}：{content}"
-                                    self.spy.send_text(wxid_forward, content, pid=self.pid)
+                                    speaker = listen["member_reply"].index(wxid2) + 1
+                                    speaker_nickname = speaker_nickname = f"用户{speaker}"
+                                    _content = f"转发:[{group_nickname}]{speaker_nickname}----{content}"
+                                    # print(content)
+                                    self.spy.send_text(wxid_forward, _content, pid=self.pid)
 
     def open_wechat(self):
         self.pid = self.spy.run(background=True)
@@ -231,7 +235,7 @@ class Postman:
         data_global[self.wxid]["listen_relationship"][listen_index] = listen_relationship
         with open("data.pkl", "wb") as wf:
             pickle.dump(data_global, wf)
-        self.group_forward.insert('', 'end', values=(listen_index, data_global[self.wxid]["chatroom_nickname"][self.group_listen], '11', data_global[self.wxid]["chatroom_nickname"][self.group_reply], '22'))
+        self.group_forward.insert('', 'end', values=(listen_index, data_global[self.wxid]["chatroom_nickname"][self.group_listen], data_global[self.wxid]["chatroom_nickname"][self.group_reply], '点击查看'))
         listen_index += 1
 
     def delete_listen_relationship(self):
@@ -245,6 +249,35 @@ class Postman:
         data_global[self.wxid]["listen_relationship"].pop(listen_id)
         with open("data.pkl", "wb") as wf:
             pickle.dump(data_global, wf)
+
+    def show_listen_details(self, event):
+        listen_id = 0
+        for item in self.group_forward.selection():
+            item_text = self.group_forward.item(item, "values")
+            listen_id = item_text[0]
+        if listen_id:
+            listen_id = int(listen_id)
+            listen_relationship = data_global[self.wxid]["listen_relationship"].get(listen_id)
+            self.tl = tkinter.Toplevel(self.tk)
+            self.tl.title("监听转发详情")
+            self.tl.geometry('400x250+300+300')
+            self.tl.resizable(0, 0)
+            group_listen_nickname = data_global[self.wxid]["chatroom_nickname"][listen_relationship["group_listen"]]
+            group_reply_nickname = data_global[self.wxid]["chatroom_nickname"][listen_relationship["group_reply"]]
+            frame_group_listen = tkinter.LabelFrame(self.tl, text=group_listen_nickname, padx=5, pady=5)
+            frame_group_listen.place(x=10, y=20)
+            listbox_member_listen = tkinter.Listbox(frame_group_listen)
+            listbox_member_listen.pack()
+            for member in listen_relationship["member_listen"]:
+                nickname = data_global[self.wxid]["member_nickname"][member]
+                listbox_member_listen.insert("end", nickname)
+            frame_group_reply = tkinter.LabelFrame(self.tl, text=group_reply_nickname, padx=5, pady=5)
+            frame_group_reply.place(x=200, y=20)
+            listbox_member_reply = tkinter.Listbox(frame_group_reply)
+            listbox_member_reply.pack()
+            for member in listen_relationship["member_reply"]:
+                nickname = data_global[self.wxid]["member_nickname"][member]
+                listbox_member_reply.insert("end", nickname)
 
 
 if __name__ == '__main__':
