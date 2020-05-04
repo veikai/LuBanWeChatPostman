@@ -96,8 +96,7 @@ class WeChatSpy:
             socket_client.send(data_length_bytes + data.encode(encoding="utf8"))
 
     def run(self, background=False):
-        current_path = os.path.split(os.path.abspath(__file__))[0]
-        launcher_path = os.path.join(current_path, "Launcher.exe")
+        launcher_path = os.path.join(os.getcwd(), "Launcher.exe")
         cmd_str = f"{launcher_path} multi" if self.__multi else launcher_path
         p = Popen(cmd_str, shell=True, stdout=PIPE)
         res_code, err = p.communicate()
