@@ -96,7 +96,7 @@ class Postman:
                 logger.info("创建空白数据模板")
                 data_global[data["wxid"]] = {
                     "listen_relationship": {},
-                    "pid_chatroom": {},
+                    "chatroom": set(),
                     "chatroom_nickname": {},
                     "chatroom_member": {},
                     "member_nickname": {}
@@ -114,10 +114,7 @@ class Postman:
             for contact in data["data"]:
                 if contact["wxid"].endswith("@chatroom"):
                     data_global[self.wxid]["chatroom_nickname"][contact["wxid"]] = contact["nickname"]
-                    if not data_global[self.wxid]["pid_chatroom"].get(pid):
-                        data_global[self.wxid]["pid_chatroom"][pid] = [contact]
-                    else:
-                        data_global[self.wxid]["pid_chatroom"][pid].append(contact)
+                    data_global[self.wxid]["chatroom"].add("{}[{}]".format(contact["nickname"], contact["wxid"]))
             logger.info("加载联系人{}/{}".format(data["current_page"], data["total_page"]))
             if data["total_page"] == data["current_page"]:
                 logger.info("联系人加载完成")
@@ -203,12 +200,15 @@ class Postman:
             return
         self.tl = tkinter.Toplevel(self.tk)
         self.tl.title("选择监听群")
-        self.tl.geometry('250x80+300+300')
+        self.tl.geometry('250x110+300+300')
         self.tl.resizable(0, 0)
+        sv = tkinter.StringVar()
+        sv.trace("w", lambda name, index, mode, sv=sv: self.query_group_listen(sv))
+        enter_group_listen = ttk.Entry(self.tl, width=200, textvariable=sv)
+        enter_group_listen.pack(pady=2)
         self.combobox_group_listen = ttk.Combobox(self.tl)
-        self.combobox_group_listen['value'] = \
-            ["{}[{}]".format(i['nickname'], i['wxid']) for i in data_global[self.wxid]["pid_chatroom"][self.pid]]
-        self.combobox_group_listen.pack(pady=10)
+        self.combobox_group_listen.pack(pady=11)
+        self.combobox_group_listen['value'] = [i for i in data_global[self.wxid]["chatroom"]]
         button_next = tkinter.Button(self.tl, text="下一步", command=self.select_group_member_listen)
         button_next.pack()
 
@@ -256,11 +256,14 @@ class Postman:
         self.tl.destroy()
         self.tl = tkinter.Toplevel(self.tk)
         self.tl.title("选择转发群")
-        self.tl.geometry('250x80+300+300')
+        self.tl.geometry('250x110+300+300')
         self.tl.resizable(0, 0)
+        sv = tkinter.StringVar()
+        sv.trace("w", lambda name, index, mode, sv=sv: self.query_group_reply(sv))
+        enter_group_reply = ttk.Entry(self.tl, width=200, textvariable=sv)
+        enter_group_reply.pack(pady=2)
         self.combobox_group_reply = ttk.Combobox(self.tl)
-        self.combobox_group_reply['value'] = \
-            ["{}[{}]".format(i['nickname'], i['wxid']) for i in data_global[self.wxid]["pid_chatroom"][self.pid]]
+        self.combobox_group_reply['value'] = [i for i in data_global[self.wxid]["chatroom"]]
         self.combobox_group_reply.pack(pady=10)
         button_next = tkinter.Button(self.tl, text="下一步", command=self.select_group_member_reply)
         button_next.pack()
@@ -379,6 +382,22 @@ class Postman:
         logger.info("关闭微信:{}".format(self.pid))
         os.system("taskkill /pid {} -t -f".format(self.pid))
         self.tk.destroy()
+
+    def query_group_listen(self, sv):
+        self.combobox_group_listen["value"] = []
+        group_listen = []
+        for chatroom in data_global[self.wxid]["chatroom"]:
+            if sv.get() in chatroom:
+                group_listen.append(chatroom)
+        self.combobox_group_listen["value"] = group_listen
+
+    def query_group_reply(self, sv):
+        self.combobox_group_reply["value"] = []
+        group_reply = []
+        for chatroom in data_global[self.wxid]["chatroom"]:
+            if sv.get() in chatroom:
+                group_reply.append(chatroom)
+        self.combobox_group_reply["value"] = group_reply
 
 
 if __name__ == '__main__':
