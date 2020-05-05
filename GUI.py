@@ -188,7 +188,7 @@ class Postman:
                                         self.spy.send_file(wxid_forward, dst_path, self.pid)
                                 else:
                                     _content = "转发:[{}]{}----不支持的消息类型".format(group_nickname, speaker_nickname)
-                                    # self.spy.send_text(wxid_forward, _content, pid=self.pid)
+                                    self.spy.send_text(wxid_forward, _content, pid=self.pid)
 
     def open_wechat(self):
         self.pid = self.spy.run(background=True)
