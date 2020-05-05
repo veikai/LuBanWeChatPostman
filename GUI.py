@@ -1,17 +1,39 @@
 import tkinter
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from PyWeChatSpy import WeChatSpy
 from time import sleep, time
+from datetime import datetime
+import logging
 import pickle
 import shutil
 import re
 import os
 
+logger = logging.getLogger(__file__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
+sh = logging.StreamHandler()
+sh.setFormatter(formatter)
+sh.setLevel(logging.INFO)
+fh = logging.FileHandler("post.log", mode="w")
+fh.setFormatter(formatter)
+fh.setLevel(logging.INFO)
+logger.addHandler(sh)
+logger.addHandler(fh)
+
 data_global = {}
 listen_index = 1
 if os.path.exists("data.pkl"):
+    logger.info("加载数据。。。")
     with open("data.pkl", "rb") as rf:
         data_global = pickle.load(rf)
+
+
+def record(chatroom, speaker, content, forward):
+    file_name = "records/{}.csv".format(datetime.now().strftime("%Y%m%d"))
+    _content = "{},{},{},{},{}\n".format(datetime.now().strftime("%H:%M:%S"), chatroom, speaker, content, forward)
+    with open(file_name, "a") as wf:
+        wf.write(_content)
 
 
 class Postman:
@@ -68,8 +90,10 @@ class Postman:
         pid = data.pop("pid")
         if m_type == 1:
             self.wxid = data["wxid"]
+            logger.info("{}登录成功".format(self.wxid))
             self.label_log["text"] = "登录成功"
             if not data_global.get(self.wxid):
+                logger.info("创建空白数据模板")
                 data_global[data["wxid"]] = {
                     "listen_relationship": {},
                     "pid_chatroom": {},
@@ -84,6 +108,7 @@ class Postman:
             id_list = list(data_global[self.wxid]["listen_relationship"].keys())
             if id_list:
                 listen_index += id_list[-1]
+            logger.info("开始加载联系人列表...")
             self.spy.query_contact_list(step=50, pid=pid)
         elif m_type == 3:
             for contact in data["data"]:
@@ -93,12 +118,15 @@ class Postman:
                         data_global[self.wxid]["pid_chatroom"][pid] = [contact]
                     else:
                         data_global[self.wxid]["pid_chatroom"][pid].append(contact)
+            logger.info("加载联系人{}/{}".format(data["current_page"], data["total_page"]))
             if data["total_page"] == data["current_page"]:
+                logger.info("联系人加载完成")
                 self.label_log["text"] = "联系人加载完成"
         elif m_type == 4:
             data_global[self.wxid]["chatroom_member"][data["wxid"]] = data["data"]
             for member in data["data"]:
                 data_global[self.wxid]["member_nickname"][member["wxid"]] = member["nickname"]
+            logger.info("群{}成员加载完成".format(data["wxid"]))
         elif m_type == 5:
             if pid == self.pid:
                 for message in data["data"]:
@@ -120,6 +148,8 @@ class Postman:
                             if group_nickname and speaker_nickname and wxid_forward:
                                 if message["msg_type"] == 1:
                                     content = message["content"]
+                                    record(group_nickname, speaker_nickname, content,
+                                           data_global[self.wxid]["chatroom_nickname"][wxid_forward])
                                     _content = "转发:[{}]{}----{}".format(group_nickname, speaker_nickname, content)
                                     self.spy.send_text(wxid_forward, _content, pid=self.pid)
                                 elif message["msg_type"] in (3, 43):
@@ -136,6 +166,8 @@ class Postman:
                                                     sleep(10)
                                                 except PermissionError:
                                                     sleep(1)
+                                            record(group_nickname, speaker_nickname, dst_path,
+                                                   data_global[self.wxid]["chatroom_nickname"][wxid_forward])
                                             _content = "转发:[{}]{}----图片".format(group_nickname, speaker_nickname)
                                             self.spy.send_text(wxid_forward, _content, pid=self.pid)
                                     elif message["msg_type"] == 43:
@@ -150,16 +182,20 @@ class Postman:
                                                     sleep(10)
                                                 except PermissionError:
                                                     sleep(1)
+                                            record(group_nickname, speaker_nickname, dst_path,
+                                                   data_global[self.wxid]["chatroom_nickname"][wxid_forward])
                                             _content = "转发:[{}]{}----视频".format(group_nickname, speaker_nickname)
                                             self.spy.send_text(wxid_forward, _content, pid=self.pid)
                                     if dst_path:
+                                        pass
                                         self.spy.send_file(wxid_forward, dst_path, self.pid)
                                 else:
                                     _content = "转发:[{}]{}----不支持的消息类型".format(group_nickname, speaker_nickname)
-                                    self.spy.send_text(wxid_forward, _content, pid=self.pid)
+                                    # self.spy.send_text(wxid_forward, _content, pid=self.pid)
 
     def open_wechat(self):
         self.pid = self.spy.run(background=True)
+        logger.info("打开微信:{}".format(self.pid))
 
     def select_group_listen(self):
         if not self.wxid:
@@ -178,15 +214,20 @@ class Postman:
 
     def select_group_member_listen(self):
         self.group_listen = self.combobox_group_listen.get()
+        logger.info("选择监听群：{}".format(self.group_listen))
         self.tl.destroy()
         self.group_listen = re.search(r'(?<=\[).*?(?=\])', self.group_listen).group()
+        logger.info("查询群{}成员".format(self.group_listen))
         self.spy.query_chatroom_member(self.group_listen, self.pid)
-        while True:
+        for i in range(300):
             if data_global[self.wxid]["chatroom_member"].get(self.group_listen):
                 self.group_members = ["{}[{}]".format(i['nickname'], i['wxid'])
                                       for i in data_global[self.wxid]["chatroom_member"][self.group_listen]]
                 break
             sleep(0.1)
+        else:
+            logger.warning("查询群{}成员超时".format(self.group_listen))
+            messagebox.showwarning("错误", "群成员加载超时")
         self.tl = tkinter.Toplevel(self.tk)
         self.tl.title("选择监听群成员")
         self.tl.geometry('200x250+300+300')
@@ -226,18 +267,24 @@ class Postman:
 
     def select_group_member_reply(self):
         self.group_reply = self.combobox_group_reply.get()
+        logger.info("消息转发到群：{}".format(self.group_reply))
         self.group_reply = re.search(r'(?<=\[).*?(?=\])', self.group_reply).group()
         if self.group_listen == self.group_reply:
+            logger.warning("监听群与转发群不允许相同")
             self.label_log["text"] = "监听群与转发群不允许相同"
         else:
             self.tl.destroy()
+            logger.info("查询群{}成员".format(self.group_reply))
             self.spy.query_chatroom_member(self.group_reply, self.pid)
-            while True:
+            for i in range(300):
                 if data_global[self.wxid]["chatroom_member"].get(self.group_reply):
                     self.group_members = ["{}[{}]".format(i['nickname'], i['wxid'])
                                           for i in data_global[self.wxid]["chatroom_member"][self.group_reply]]
                     break
                 sleep(0.1)
+            else:
+                logger.warning("查询群{}成员超时".format(self.group_listen))
+                messagebox.showwarning("错误", "群成员加载超时")
             self.tl = tkinter.Toplevel(self.tk)
             self.tl.title("选择转发回复群成员")
             self.tl.geometry('200x250+300+300')
@@ -271,6 +318,7 @@ class Postman:
             "group_reply": self.group_reply,
             "member_reply": self.members_reply
         }
+        logger.info("添加监听关系：{}".format(listen_relationship))
         data_global[self.wxid]["listen_relationship"][listen_index] = listen_relationship
         with open("data.pkl", "wb") as wf:
             pickle.dump(data_global, wf)
@@ -328,6 +376,7 @@ class Postman:
                 listbox_member_reply.insert("end", nickname)
 
     def quit(self):
+        logger.info("关闭微信:{}".format(self.pid))
         os.system("taskkill /pid {} -t -f".format(self.pid))
         self.tk.destroy()
 
