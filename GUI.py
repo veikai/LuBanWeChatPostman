@@ -1,8 +1,9 @@
 import tkinter
 from tkinter import ttk
 from PyWeChatSpy import WeChatSpy
-from time import sleep
+from time import sleep, time
 import pickle
+import shutil
 import re
 import os
 
@@ -16,6 +17,7 @@ if os.path.exists("data.pkl"):
 class Postman:
     def __init__(self):
         self.tk = tkinter.Tk()
+        self.tk.protocol('WM_DELETE_WINDOW', self.quit)
         self.tk.title("鲁班转发助手")
         self.tk.geometry('600x400+200+200')
         self.tk.resizable(0, 0)
@@ -57,7 +59,7 @@ class Postman:
         self.members_listen = []
         self.members_reply = []
         self.pid = 0
-        self.spy = WeChatSpy(parser=self.parser, multi=True)
+        self.spy = WeChatSpy(parser=self.parser, multi=True, download_image=True)
         self.wxid = None
 
     def parser(self, data):
@@ -66,6 +68,7 @@ class Postman:
         pid = data.pop("pid")
         if m_type == 1:
             self.wxid = data["wxid"]
+            self.label_log["text"] = "登录成功"
             if not data_global.get(self.wxid):
                 data_global[data["wxid"]] = {
                     "listen_relationship": {},
@@ -99,28 +102,60 @@ class Postman:
         elif m_type == 5:
             if pid == self.pid:
                 for message in data["data"]:
-                    if message["msg_type"] == 1:
-                        wxid1 = message["wxid1"]
-                        wxid2 = message.get("wxid2")
-                        if wxid2:
-                            for listen in data_global[self.wxid]["listen_relationship"].values():
-                                if wxid1 == listen["group_listen"] and wxid2 in listen["member_listen"]:
+                    wxid1 = message["wxid1"]
+                    wxid2 = message.get("wxid2")
+                    if not message["self"] and wxid2:
+                        for listen in data_global[self.wxid]["listen_relationship"].values():
+                            group_nickname = speaker_nickname = wxid_forward = None
+                            if wxid1 == listen["group_listen"] and wxid2 in listen["member_listen"]:
+                                wxid_forward = listen["group_reply"]
+                                group_nickname = data_global[self.wxid]["chatroom_nickname"][wxid1]
+                                speaker = listen["member_listen"].index(wxid2) + 1
+                                speaker_nickname = "用户{}".format(speaker)
+                            elif wxid1 == listen["group_reply"] and wxid2 in listen["member_reply"]:
+                                wxid_forward = listen["group_listen"]
+                                group_nickname = data_global[self.wxid]["chatroom_nickname"][wxid1]
+                                speaker = listen["member_reply"].index(wxid2) + 1
+                                speaker_nickname = "用户{}".format(speaker)
+                            if group_nickname and speaker_nickname and wxid_forward:
+                                if message["msg_type"] == 1:
                                     content = message["content"]
-                                    wxid_forward = listen["group_reply"]
-                                    group_nickname = data_global[self.wxid]["chatroom_nickname"][wxid1]
-                                    speaker = listen["member_listen"].index(wxid2) + 1
-                                    speaker_nickname = f"用户{speaker}"
-                                    _content = f"转发:[{group_nickname}]{speaker_nickname}----{content}"
-                                    # print(content)
+                                    _content = "转发:[{}]{}----{}".format(group_nickname, speaker_nickname, content)
                                     self.spy.send_text(wxid_forward, _content, pid=self.pid)
-                                elif wxid1 == listen["group_reply"] and wxid2 in listen["member_reply"]:
-                                    content = message["content"]
-                                    wxid_forward = listen["group_listen"]
-                                    group_nickname = data_global[self.wxid]["chatroom_nickname"][wxid1]
-                                    speaker = listen["member_reply"].index(wxid2) + 1
-                                    speaker_nickname = speaker_nickname = f"用户{speaker}"
-                                    _content = f"转发:[{group_nickname}]{speaker_nickname}----{content}"
-                                    # print(content)
+                                elif message["msg_type"] in (3, 43):
+                                    dst_path = None
+                                    if message["msg_type"] == 3:
+                                        image_path = message.get("image_path")
+                                        if image_path:
+                                            dst_path = os.path.join(os.getcwd(), r"images\{}.jpg".format(int(time())))
+                                            while True:
+                                                try:
+                                                    shutil.move(image_path, dst_path)
+                                                    break
+                                                except FileNotFoundError:
+                                                    sleep(10)
+                                                except PermissionError:
+                                                    sleep(1)
+                                            _content = "转发:[{}]{}----图片".format(group_nickname, speaker_nickname)
+                                            self.spy.send_text(wxid_forward, _content, pid=self.pid)
+                                    elif message["msg_type"] == 43:
+                                        video_path = message.get("video_path")
+                                        if video_path:
+                                            dst_path = os.path.join(os.getcwd(), r"videos\{}.mp4".format(int(time())))
+                                            while True:
+                                                try:
+                                                    shutil.move(video_path, dst_path)
+                                                    break
+                                                except FileNotFoundError:
+                                                    sleep(10)
+                                                except PermissionError:
+                                                    sleep(1)
+                                            _content = "转发:[{}]{}----视频".format(group_nickname, speaker_nickname)
+                                            self.spy.send_text(wxid_forward, _content, pid=self.pid)
+                                    if dst_path:
+                                        self.spy.send_file(wxid_forward, dst_path, self.pid)
+                                else:
+                                    _content = "转发:[{}]{}----不支持的消息类型".format(group_nickname, speaker_nickname)
                                     self.spy.send_text(wxid_forward, _content, pid=self.pid)
 
     def open_wechat(self):
@@ -135,7 +170,8 @@ class Postman:
         self.tl.geometry('250x80+300+300')
         self.tl.resizable(0, 0)
         self.combobox_group_listen = ttk.Combobox(self.tl)
-        self.combobox_group_listen['value'] = [f"{i['nickname']}[{i['wxid']}]" for i in data_global[self.wxid]["pid_chatroom"][self.pid]]
+        self.combobox_group_listen['value'] = \
+            ["{}[{}]".format(i['nickname'], i['wxid']) for i in data_global[self.wxid]["pid_chatroom"][self.pid]]
         self.combobox_group_listen.pack(pady=10)
         button_next = tkinter.Button(self.tl, text="下一步", command=self.select_group_member_listen)
         button_next.pack()
@@ -147,7 +183,8 @@ class Postman:
         self.spy.query_chatroom_member(self.group_listen, self.pid)
         while True:
             if data_global[self.wxid]["chatroom_member"].get(self.group_listen):
-                self.group_members = [f"{i['nickname']}[{i['wxid']}]" for i in data_global[self.wxid]["chatroom_member"][self.group_listen]]
+                self.group_members = ["{}[{}]".format(i['nickname'], i['wxid'])
+                                      for i in data_global[self.wxid]["chatroom_member"][self.group_listen]]
                 break
             sleep(0.1)
         self.tl = tkinter.Toplevel(self.tk)
@@ -181,7 +218,8 @@ class Postman:
         self.tl.geometry('250x80+300+300')
         self.tl.resizable(0, 0)
         self.combobox_group_reply = ttk.Combobox(self.tl)
-        self.combobox_group_reply['value'] = [f"{i['nickname']}[{i['wxid']}]" for i in data_global[self.wxid]["pid_chatroom"][self.pid]]
+        self.combobox_group_reply['value'] = \
+            ["{}[{}]".format(i['nickname'], i['wxid']) for i in data_global[self.wxid]["pid_chatroom"][self.pid]]
         self.combobox_group_reply.pack(pady=10)
         button_next = tkinter.Button(self.tl, text="下一步", command=self.select_group_member_reply)
         button_next.pack()
@@ -196,7 +234,8 @@ class Postman:
             self.spy.query_chatroom_member(self.group_reply, self.pid)
             while True:
                 if data_global[self.wxid]["chatroom_member"].get(self.group_reply):
-                    self.group_members = [f"{i['nickname']}[{i['wxid']}]" for i in data_global[self.wxid]["chatroom_member"][self.group_reply]]
+                    self.group_members = ["{}[{}]".format(i['nickname'], i['wxid'])
+                                          for i in data_global[self.wxid]["chatroom_member"][self.group_reply]]
                     break
                 sleep(0.1)
             self.tl = tkinter.Toplevel(self.tk)
@@ -235,7 +274,16 @@ class Postman:
         data_global[self.wxid]["listen_relationship"][listen_index] = listen_relationship
         with open("data.pkl", "wb") as wf:
             pickle.dump(data_global, wf)
-        self.group_forward.insert('', 'end', values=(listen_index, data_global[self.wxid]["chatroom_nickname"][self.group_listen], data_global[self.wxid]["chatroom_nickname"][self.group_reply], '点击查看'))
+        self.group_forward.insert(
+            '',
+            'end',
+            values=(
+                listen_index,
+                data_global[self.wxid]["chatroom_nickname"][self.group_listen],
+                data_global[self.wxid]["chatroom_nickname"][self.group_reply],
+                '点击查看'
+            )
+        )
         listen_index += 1
 
     def delete_listen_relationship(self):
@@ -278,6 +326,10 @@ class Postman:
             for member in listen_relationship["member_reply"]:
                 nickname = data_global[self.wxid]["member_nickname"][member]
                 listbox_member_reply.insert("end", nickname)
+
+    def quit(self):
+        os.system("taskkill /pid {} -t -f".format(self.pid))
+        self.tk.destroy()
 
 
 if __name__ == '__main__':

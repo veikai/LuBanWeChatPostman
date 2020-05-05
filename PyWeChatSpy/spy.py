@@ -56,11 +56,11 @@ class WeChatSpy:
     def __start_server(self):
         while True:
             socket_client, client_address = self.__socket_server.accept()
-            self.logger.info(f"A WeChat process from {client_address} successfully connected")
+            self.logger.info("A WeChat process from {} successfully connected".format(client_address))
             if self.__download_image:
-                self.__send({"code": 1}, client_address[1])
+                self.__send({"code": 1}, 0, socket_client)
             t_socket_client_receive = Thread(target=self.receive, args=(socket_client, ))
-            t_socket_client_receive.name = f"client {client_address[1]}"
+            t_socket_client_receive.name = "client {}".format(client_address[1])
             t_socket_client_receive.daemon = True
             t_socket_client_receive.start()
 
@@ -84,8 +84,10 @@ class WeChatSpy:
                             self.__parser(data)
                 data_str = ""
 
-    def __send(self, data, pid):
-        if pid:
+    def __send(self, data, pid, client=None):
+        if client:
+            socket_client = client
+        elif pid:
             socket_client = self.__pid2client.get(pid)
         else:
             socket_client_list = list(self.__pid2client.values())
@@ -97,7 +99,7 @@ class WeChatSpy:
 
     def run(self, background=False):
         launcher_path = os.path.join(os.getcwd(), "Launcher.exe")
-        cmd_str = f"{launcher_path} multi" if self.__multi else launcher_path
+        cmd_str = "{} multi".format(launcher_path) if self.__multi else launcher_path
         p = Popen(cmd_str, shell=True, stdout=PIPE)
         res_code, err = p.communicate()
         res_code = res_code.decode()
@@ -143,9 +145,9 @@ class WeChatSpy:
         :param pid:
         """
         if len(file_path.split("\\")) > 8:
-            return self.logger.warning(f"File path is too long: {file_path}")
+            return self.logger.warning("File path is too long: {}".format(file_path))
         if re.findall(pattern, file_path):
-            return self.logger.warning(f"Chinese characters are not allowed in file path: {file_path}")
+            return self.logger.warning("Chinese characters are not allowed in file path: {}".format(file_path))
         data = {"code": 6, "wxid": wxid, "file_path": file_path}
         self.__send(data, pid)
 

@@ -10,7 +10,7 @@ class GetWeChatVersionError(SpyError):
 
 class WrongWeChatVersionError(SpyError):
     def __init__(self):
-        super(Exception, self).__init__(f"Unsuitable WeChat Version")
+        super(Exception, self).__init__("Unsuitable WeChat Version")
 
 
 class GetWeChatPathError(SpyError):
