@@ -132,23 +132,26 @@ class Postman:
                     if not message["self"] and wxid2:
                         for listen in data_global[self.wxid]["listen_relationship"].values():
                             group_nickname = speaker_nickname = wxid_forward = None
+                            at_wxid = ""
                             if wxid1 == listen["group_listen"] and wxid2 in listen["member_listen"]:
                                 wxid_forward = listen["group_reply"]
                                 group_nickname = data_global[self.wxid]["chatroom_nickname"][wxid1]
                                 speaker = listen["member_listen"].index(wxid2) + 1
                                 speaker_nickname = "用户{}".format(speaker)
+                                at_wxid = ",".join(listen["member_listen"])
                             elif wxid1 == listen["group_reply"] and wxid2 in listen["member_reply"]:
                                 wxid_forward = listen["group_listen"]
                                 group_nickname = data_global[self.wxid]["chatroom_nickname"][wxid1]
                                 speaker = listen["member_reply"].index(wxid2) + 1
                                 speaker_nickname = "用户{}".format(speaker)
+                                at_wxid = ",".join(listen["member_reply"])
                             if group_nickname and speaker_nickname and wxid_forward:
                                 if message["msg_type"] == 1:
                                     content = message["content"]
                                     record(group_nickname, speaker_nickname, content,
                                            data_global[self.wxid]["chatroom_nickname"][wxid_forward])
                                     _content = "转发:[{}]{}----{}".format(group_nickname, speaker_nickname, content)
-                                    self.spy.send_text(wxid_forward, _content, pid=self.pid)
+                                    self.spy.send_text(wxid_forward, _content, at_wxid=at_wxid, pid=self.pid)
                                 elif message["msg_type"] in (3, 43):
                                     dst_path = None
                                     if message["msg_type"] == 3:
@@ -166,7 +169,7 @@ class Postman:
                                             record(group_nickname, speaker_nickname, dst_path,
                                                    data_global[self.wxid]["chatroom_nickname"][wxid_forward])
                                             _content = "转发:[{}]{}----图片".format(group_nickname, speaker_nickname)
-                                            self.spy.send_text(wxid_forward, _content, pid=self.pid)
+                                            self.spy.send_text(wxid_forward, _content, at_wxid=at_wxid, pid=self.pid)
                                     elif message["msg_type"] == 43:
                                         video_path = message.get("video_path")
                                         if video_path:
@@ -182,9 +185,8 @@ class Postman:
                                             record(group_nickname, speaker_nickname, dst_path,
                                                    data_global[self.wxid]["chatroom_nickname"][wxid_forward])
                                             _content = "转发:[{}]{}----视频".format(group_nickname, speaker_nickname)
-                                            self.spy.send_text(wxid_forward, _content, pid=self.pid)
+                                            self.spy.send_text(wxid_forward, _content, at_wxid=at_wxid, pid=self.pid)
                                     if dst_path:
-                                        pass
                                         self.spy.send_file(wxid_forward, dst_path, self.pid)
                                 else:
                                     _content = "转发:[{}]{}----不支持的消息类型".format(group_nickname, speaker_nickname)
@@ -380,7 +382,8 @@ class Postman:
 
     def quit(self):
         logger.info("关闭微信:{}".format(self.pid))
-        os.system("taskkill /pid {} -t -f".format(self.pid))
+        if self.pid:
+            os.system("taskkill /pid {} -t -f".format(self.pid))
         self.tk.destroy()
 
     def query_group_listen(self, sv):
