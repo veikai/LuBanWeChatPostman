@@ -15,7 +15,7 @@ formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
 sh = logging.StreamHandler()
 sh.setFormatter(formatter)
 sh.setLevel(logging.INFO)
-fh = logging.FileHandler("post.log", mode="w")
+fh = logging.FileHandler("post.log", mode="w", encoding="utf8")
 fh.setFormatter(formatter)
 fh.setLevel(logging.INFO)
 logger.addHandler(sh)
@@ -32,7 +32,7 @@ if os.path.exists("data.pkl"):
 def record(chatroom, speaker, content, forward):
     file_name = "records/{}.csv".format(datetime.now().strftime("%Y%m%d"))
     _content = "{},{},{},{},{}\n".format(datetime.now().strftime("%H:%M:%S"), chatroom, speaker, content, forward)
-    with open(file_name, "a") as wf:
+    with open(file_name, "a", errors="ignore") as wf:
         wf.write(_content)
 
 
@@ -129,28 +129,37 @@ class Postman:
                 for message in data["data"]:
                     wxid1 = message["wxid1"]
                     wxid2 = message.get("wxid2")
+                    head = message.get("head")
                     if not message["self"] and wxid2:
                         for listen in data_global[self.wxid]["listen_relationship"].values():
                             group_nickname = speaker_nickname = wxid_forward = None
-                            at_wxid = ""
+                            at_wxid = at_nickname = ""
                             if wxid1 == listen["group_listen"] and wxid2 in listen["member_listen"]:
                                 wxid_forward = listen["group_reply"]
                                 group_nickname = data_global[self.wxid]["chatroom_nickname"][wxid1]
                                 speaker = listen["member_listen"].index(wxid2) + 1
                                 speaker_nickname = "用户{}".format(speaker)
-                                at_wxid = ",".join(listen["member_listen"])
+                                if self.wxid in head:
+                                    at_wxid = ",".join(listen["member_reply"])
+                                    for member in listen["member_reply"]:
+                                        at_nickname += "@{} ".format(data_global[self.wxid]["member_nickname"][member])
                             elif wxid1 == listen["group_reply"] and wxid2 in listen["member_reply"]:
                                 wxid_forward = listen["group_listen"]
                                 group_nickname = data_global[self.wxid]["chatroom_nickname"][wxid1]
                                 speaker = listen["member_reply"].index(wxid2) + 1
                                 speaker_nickname = "用户{}".format(speaker)
-                                at_wxid = ",".join(listen["member_reply"])
+                                if self.wxid in head:
+                                    at_wxid = ",".join(listen["group_listen"])
+                                    for member in listen["group_listen"]:
+                                        at_nickname += "@{} ".format(data_global[self.wxid]["member_reply"][member])
                             if group_nickname and speaker_nickname and wxid_forward:
                                 if message["msg_type"] == 1:
                                     content = message["content"]
+                                    if at_wxid:
+                                        content = re.sub("(?=@).*?(?= )", "", content, 1)
                                     record(group_nickname, speaker_nickname, content,
                                            data_global[self.wxid]["chatroom_nickname"][wxid_forward])
-                                    _content = "转发:[{}]{}----{}".format(group_nickname, speaker_nickname, content)
+                                    _content = "转发[{}]{}:\n-----------\n{} {}".format(group_nickname, speaker_nickname, at_nickname, content)
                                     self.spy.send_text(wxid_forward, _content, at_wxid=at_wxid, pid=self.pid)
                                 elif message["msg_type"] in (3, 43):
                                     dst_path = None
@@ -168,8 +177,8 @@ class Postman:
                                                     sleep(1)
                                             record(group_nickname, speaker_nickname, dst_path,
                                                    data_global[self.wxid]["chatroom_nickname"][wxid_forward])
-                                            _content = "转发:[{}]{}----图片".format(group_nickname, speaker_nickname)
-                                            self.spy.send_text(wxid_forward, _content, at_wxid=at_wxid, pid=self.pid)
+                                            _content = "转发:[{}]{}\n-----------\n图片".format(group_nickname, speaker_nickname)
+                                            self.spy.send_text(wxid_forward, _content, pid=self.pid)
                                     elif message["msg_type"] == 43:
                                         video_path = message.get("video_path")
                                         if video_path:
@@ -184,12 +193,12 @@ class Postman:
                                                     sleep(1)
                                             record(group_nickname, speaker_nickname, dst_path,
                                                    data_global[self.wxid]["chatroom_nickname"][wxid_forward])
-                                            _content = "转发:[{}]{}----视频".format(group_nickname, speaker_nickname)
-                                            self.spy.send_text(wxid_forward, _content, at_wxid=at_wxid, pid=self.pid)
+                                            _content = "转发:[{}]{}\n-----------\n视频".format(group_nickname, speaker_nickname)
+                                            self.spy.send_text(wxid_forward, _content, pid=self.pid)
                                     if dst_path:
                                         self.spy.send_file(wxid_forward, dst_path, self.pid)
                                 else:
-                                    _content = "转发:[{}]{}----不支持的消息类型".format(group_nickname, speaker_nickname)
+                                    _content = "转发:[{}]{}\n-----------\n不支持的消息类型".format(group_nickname, speaker_nickname)
                                     self.spy.send_text(wxid_forward, _content, pid=self.pid)
 
     def open_wechat(self):
@@ -210,6 +219,7 @@ class Postman:
         enter_group_listen.pack(pady=2)
         self.combobox_group_listen = ttk.Combobox(self.tl)
         self.combobox_group_listen.pack(pady=11)
+        print([i for i in data_global[self.wxid]["chatroom"]])
         self.combobox_group_listen['value'] = [i for i in data_global[self.wxid]["chatroom"]]
         button_next = tkinter.Button(self.tl, text="下一步", command=self.select_group_member_listen)
         button_next.pack()
