@@ -8,6 +8,7 @@ import pickle
 import shutil
 import re
 import os
+import copy
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.DEBUG)
@@ -264,6 +265,7 @@ class Postman:
         self.tl.resizable(0, 0)
         self.listbox_member_listen = tkinter.Listbox(self.tl, selectmode=tkinter.MULTIPLE)
         self.listbox_member_listen.pack()
+        self.listbox_member_listen.selection_clear(0)
         for member in self.group_members:
             self.listbox_member_listen.insert("end", member)
         self.check_member_listen = ttk.Checkbutton(self.tl, text="全选1", command=self.select_all_member_listen)
@@ -324,6 +326,7 @@ class Postman:
             self.tl.resizable(0, 0)
             self.listbox_member_reply = tkinter.Listbox(self.tl, selectmode=tkinter.MULTIPLE)
             self.listbox_member_reply.pack()
+            self.listbox_member_reply.selection_clear(0)
             for member in self.group_members:
                 self.listbox_member_reply.insert("end", member)
             self.check_member_reply = ttk.Checkbutton(self.tl, text="回复全选", command=self.select_all_member_reply)
@@ -345,11 +348,15 @@ class Postman:
         for i in self.listbox_member_reply.selection_get().split("\n"):
             self.members_reply.append(re.search(r'(?<=\[).*?(?=\])', i).group())
         self.tl.destroy()
+        member_listen = copy.copy(self.members_listen)
+        self.members_listen.clear()
+        member_reply = copy.copy(self.members_reply)
+        self.members_reply.clear()
         listen_relationship = {
             "group_listen": self.group_listen,
-            "member_listen": self.members_listen,
+            "member_listen": member_listen,
             "group_reply": self.group_reply,
-            "member_reply": self.members_reply
+            "member_reply": member_reply
         }
         logger.info("添加监听关系：{}".format(listen_relationship))
         data_global[self.wxid]["listen_relationship"][listen_index] = listen_relationship
