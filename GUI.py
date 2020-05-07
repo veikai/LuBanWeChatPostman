@@ -135,10 +135,9 @@ class Postman:
                     wxid2 = message.get("wxid2")
                     head = message.get("head")
                     if not message["self"] and wxid2:
-                        logger.info("----------------------------------------------------")
-                        logger.info(f"chatroom:{wxid1}")
-                        logger.info(f"speaker:{wxid2}")
-                        for listen in data_global[self.wxid]["listen_relationship"].values():
+                        logger.info(f"==========================[{wxid1}]{wxid2}==========================")
+                        for listen_id, listen in data_global[self.wxid]["listen_relationship"].items():
+                            logger.info(f"-------------------{listen_id}-------------------")
                             logger.info(f"chatroom_listen:{listen['group_listen']}")
                             logger.info(f"chatroom_reply:{listen['group_reply']}")
                             logger.info(f"member_listen:{listen['member_listen']}")
@@ -162,9 +161,9 @@ class Postman:
                                 speaker = listen["member_reply"].index(wxid2) + 1
                                 speaker_nickname = "用户{}".format(speaker)
                                 if self.wxid in head:
-                                    at_wxid = ",".join(listen["group_listen"])
-                                    for member in listen["group_listen"]:
-                                        at_nickname += "@{} ".format(data_global[self.wxid]["member_reply"][member])
+                                    at_wxid = ",".join(listen["member_listen"])
+                                    for member in listen["member_listen"]:
+                                        at_nickname += "@{} ".format(data_global[self.wxid]["member_nickname"][member])
                             if group_nickname and speaker_nickname and wxid_forward:
                                 logger.info(f"message from [{group_nickname}]{speaker_nickname} to {wxid_forward}")
                                 if message["msg_type"] == 1:
