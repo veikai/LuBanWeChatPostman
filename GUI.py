@@ -118,6 +118,12 @@ class Postman:
             for contact in data["data"]:
                 if contact["wxid"].endswith("@chatroom"):
                     data_global[self.wxid]["chatroom_nickname"][contact["wxid"]] = contact["nickname"]
+                    for chatroom in data_global[self.wxid]["chatroom"]:
+                        wxid = re.search(r'(?<=\[).*?(?=\])', chatroom).group()
+                        if contact["wxid"] == wxid:
+                            logger.info(f"{chatroom}-->{contact['nickname']}[{contact['wxid']}]")
+                            data_global[self.wxid]["chatroom"].remove(chatroom)
+                            break
                     data_global[self.wxid]["chatroom"].add("{}[{}]".format(contact["nickname"], contact["wxid"]))
             logger.info("加载联系人{}/{}".format(data["current_page"], data["total_page"]))
             if data["total_page"] == data["current_page"]:
